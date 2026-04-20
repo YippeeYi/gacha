@@ -1,29 +1,21 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 
 <head>
     <meta charset="UTF-8">
-    <title>抽卡系统</title>
+    <title>3D抽卡系统</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <h1 class="title">✨ 抽卡系统 ✨</h1>
-
-    <div id="coins">💰 16000</div>
-
-    <div class="btns">
-        <button onclick="draw(1)">单抽（160）</button>
-        <button onclick="draw(10)">十连（1600）</button>
+    <div id="ui">
+        <h1>🎮 3D抽卡系统</h1>
+        <button onclick="draw()">抽卡</button>
     </div>
 
-    <div id="animation"></div>
-    <div id="cards"></div>
+    <script type="module" src="main.js"></script>
 
-    <canvas id="particleCanvas"></canvas>
-
-    <script src="script.js"></script>
 </body>
 
 </html>

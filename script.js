@@ -1,27 +1,59 @@
 let coins = 16000;
 let pity5 = 0;
 let pity4 = 0;
+let pool;
 
-const canvas = document.getElementById("particleCanvas");
-const ctx = canvas.getContext("2d");
+let stats = { 3: 0, 4: 0, 5: 0 };
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// ===== 加载卡池 =====
+fetch("pool.json")
+    .then(res => res.json())
+    .then(data => pool = data);
 
-let particles = [];
+// ===== 抽卡 =====
+async function draw(n) {
+    let cost = n === 10 ? 1600 : 160;
+    if (coins < cost) return alert("没钱了");
 
-function updateCoins() {
-    document.getElementById("coins").innerText = "💰 " + coins;
+    coins -= cost;
+    updateCoins();
+
+    let results = [];
+
+    for (let i = 0; i < n; i++) {
+        results.push(getResult());
+    }
+
+    await playDoor(results[0]); // 看第一张决定颜色
+    showCards(results);
+    saveHistory(results);
+    updateChart();
 }
 
-// ===== 抽卡概率 =====
-function randomCard() {
+// ===== 开门动画 =====
+async function playDoor(firstStar) {
+    let door = document.getElementById("door");
+    door.classList.remove("hidden");
+
+    if (firstStar === 5) {
+        door.style.background = "gold";
+    } else if (firstStar === 4) {
+        door.style.background = "purple";
+    } else {
+        door.style.background = "blue";
+    }
+
+    await sleep(1000);
+    door.classList.add("hidden");
+}
+
+// ===== 抽卡逻辑 =====
+function getResult() {
     pity5++;
     pity4++;
 
     if (pity5 >= 90) {
         pity5 = 0;
-        pity4 = 0;
         return 5;
     }
 
@@ -32,11 +64,10 @@ function randomCard() {
 
     let r = Math.random();
 
-    if (r < 0.006) {
+    if (r < pool.rates.five) {
         pity5 = 0;
-        pity4 = 0;
         return 5;
-    } else if (r < 0.057) {
+    } else if (r < pool.rates.five + pool.rates.four) {
         pity4 = 0;
         return 4;
     } else {
@@ -44,129 +75,63 @@ function randomCard() {
     }
 }
 
-// ===== 抽卡入口 =====
-async function draw(n) {
-    let cost = n === 10 ? 1600 : 160;
-
-    if (coins < cost) {
-        alert("没钱了");
-        return;
-    }
-
-    coins -= cost;
-    updateCoins();
-
-    let results = [];
-
-    for (let i = 0; i < n; i++) {
-        results.push(randomCard());
-    }
-
-    await playAnimation(results);
-}
-
-// ===== 动画主流程 =====
-async function playAnimation(results) {
+// ===== 显示卡牌 =====
+function showCards(results) {
     let container = document.getElementById("cards");
     container.innerHTML = "";
 
-    for (let i = 0; i < results.length; i++) {
-        let star = results[i];
+    results.forEach(star => {
+        stats[star]++;
 
-        // ⭐ 五星特效
-        if (star === 5) {
-            flashGold();
-            spawnParticles();
-            await sleep(600);
-        }
+        let item = pool[star === 5 ? "five" : star === 4 ? "four" : "three"][0];
 
-        let card = createCard(star);
-        container.appendChild(card);
+        let div = document.createElement("div");
+        div.className = "card";
 
-        await sleep(150);
+        let img = document.createElement("img");
+        img.src = item.img;
 
-        // 翻牌
-        setTimeout(() => {
-            card.classList.add("show");
-        }, 50);
-
-        await sleep(200);
-    }
-}
-
-// ===== 创建卡牌 =====
-function createCard(star) {
-    let card = document.createElement("div");
-    card.className = "card";
-
-    let inner = document.createElement("div");
-    inner.className = "inner";
-
-    let back = document.createElement("div");
-    back.className = "back";
-    back.innerText = "?";
-
-    let front = document.createElement("div");
-    front.className = "front";
-
-    if (star === 3) {
-        front.classList.add("three");
-        front.innerText = "⭐⭐⭐";
-    } else if (star === 4) {
-        front.classList.add("four");
-        front.innerText = "⭐⭐⭐⭐";
-    } else {
-        front.classList.add("five");
-        front.innerText = "⭐⭐⭐⭐⭐";
-    }
-
-    inner.appendChild(back);
-    inner.appendChild(front);
-    card.appendChild(inner);
-
-    return card;
-}
-
-// ===== 金光闪烁 =====
-function flashGold() {
-    document.body.classList.add("gold-flash");
-    setTimeout(() => {
-        document.body.classList.remove("gold-flash");
-    }, 600);
-}
-
-// ===== 粒子效果 =====
-function spawnParticles() {
-    for (let i = 0; i < 80; i++) {
-        particles.push({
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            life: 60
-        });
-    }
-}
-
-function animateParticles() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-
-        ctx.fillRect(p.x, p.y, 3, 3);
-
-        if (p.life <= 0) particles.splice(i, 1);
+        div.appendChild(img);
+        container.appendChild(div);
     });
-
-    requestAnimationFrame(animateParticles);
 }
 
-animateParticles();
+// ===== 历史记录 =====
+function saveHistory(results) {
+    let history = JSON.parse(localStorage.getItem("history") || "[]");
+    history.push(...results);
+
+    localStorage.setItem("history", JSON.stringify(history));
+
+    document.getElementById("history").innerText =
+        history.slice(-20).join(" ");
+}
+
+// ===== 统计图 =====
+function updateChart() {
+    let c = document.getElementById("chart");
+    let ctx = c.getContext("2d");
+
+    ctx.clearRect(0, 0, 300, 200);
+
+    let total = stats[3] + stats[4] + stats[5];
+
+    let heights = [
+        stats[3] / total * 150,
+        stats[4] / total * 150,
+        stats[5] / total * 150
+    ];
+
+    ctx.fillRect(50, 200 - heights[0], 30, heights[0]);
+    ctx.fillRect(120, 200 - heights[1], 30, heights[1]);
+    ctx.fillRect(190, 200 - heights[2], 30, heights[2]);
+}
 
 // ===== 工具 =====
+function updateCoins() {
+    document.getElementById("coins").innerText = "💰" + coins;
+}
+
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(r => setTimeout(r, ms));
 }
