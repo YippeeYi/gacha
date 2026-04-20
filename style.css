@@ -1,0 +1,112 @@
+body {
+    margin: 0;
+    text-align: center;
+    background: radial-gradient(circle, #1a1a2e, #0f3460);
+    color: white;
+    font-family: Arial;
+}
+
+.title {
+    margin-top: 20px;
+}
+
+#coins {
+    font-size: 22px;
+    margin: 10px;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#animation {
+    height: 200px;
+}
+
+/* 卡牌 */
+#cards {
+    margin-top: 20px;
+}
+
+.card {
+    display: inline-block;
+    width: 80px;
+    height: 120px;
+    margin: 10px;
+    perspective: 1000px;
+}
+
+.inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateY(180deg);
+    transition: transform 0.6s;
+}
+
+.card.show .inner {
+    transform: rotateY(0);
+}
+
+.front,
+.back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    line-height: 120px;
+    font-size: 20px;
+    backface-visibility: hidden;
+}
+
+.back {
+    background: #333;
+}
+
+.front {
+    transform: rotateY(180deg);
+}
+
+.three {
+    background: gray;
+}
+
+.four {
+    background: purple;
+}
+
+.five {
+    background: gold;
+    color: black;
+}
+
+/* 金光动画 */
+.gold-flash {
+    animation: flash 0.6s ease;
+}
+
+@keyframes flash {
+    0% {
+        background: black;
+    }
+
+    50% {
+        background: gold;
+    }
+
+    100% {
+        background: black;
+    }
+}
+
+/* 粒子画布 */
+#particleCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
