@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+import * as THREE from "three";
 import { initScene, createCard } from './scene.js';
 import { createRenderer, render } from './renderer.js';
 import { getResult } from './gacha.js';
