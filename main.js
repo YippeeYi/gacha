@@ -21,3 +21,5 @@ window.draw = async function () {
         card.layers.enable(1); // ⭐ 只有SSR发光
     }
 };
+
+document.getElementById("drawBtn").addEventListener("click", draw);
