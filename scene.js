@@ -10,45 +10,38 @@ export function initScene() {
         0.1,
         1000
     );
-    camera.position.z = 10;
 
+    camera.position.z = 10;
     return { scene, camera };
 }
 
 
-// ⭐ 绘制星星（优化排布）
-function drawStars(ctx, star, cx, cy) {
+// ⭐ 卡片尺寸（统一缩小 + 提高清晰度）
+const CARD_W = 1.6;
+const CARD_H = 2.4;
+
+
+// ⭐ 星星绘制（更清晰）
+function drawStars(ctx, star, w, h) {
 
     ctx.fillStyle = "white";
+    ctx.font = "bold 64px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    const sizeBig = 90;
-    const sizeSmall = 70;
+    ctx.fillText("★".repeat(star), w / 2, h * 0.45);
 
-    if (star === 3) {
-        ctx.font = `bold ${sizeBig}px Arial`;
-        ctx.fillText("★ ★ ★", cx, cy);
-    }
-
-    else if (star === 4) {
-        ctx.font = `bold ${sizeSmall}px Arial`;
-        ctx.fillText("★ ★", cx - 60, cy);
-        ctx.fillText("★ ★", cx + 60, cy);
-    }
-
-    else if (star === 5) {
-        ctx.font = `bold ${sizeSmall}px Arial`;
-        ctx.fillText("★ ★ ★", cx, cy - 40);
-        ctx.fillText("★ ★", cx, cy + 50);
-    }
+    ctx.font = "bold 32px Arial";
+    ctx.fillText(`${star}★ CARD`, w / 2, h * 0.7);
 }
 
 
-// ⭐ 生成卡片纹理
-function createCardTexture(star) {
+// ⭐ 生成卡片
+export async function createCard(star) {
 
     const canvas = document.createElement("canvas");
+
+    // ⭐ 提高清晰度（关键）
     canvas.width = 512;
     canvas.height = 768;
 
@@ -62,48 +55,31 @@ function createCardTexture(star) {
 
     let [c1, c2] = colors[star];
 
-    // 背景
-    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, c1);
-    gradient.addColorStop(1, c2);
+    let g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
 
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 边框
     ctx.strokeStyle = "white";
-    ctx.lineWidth = 8;
-    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    ctx.lineWidth = 6;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
 
-    // ⭐ 星星（优化布局）
-    drawStars(ctx, star, canvas.width / 2, canvas.height / 2);
+    drawStars(ctx, star, canvas.width, canvas.height);
 
-    // 文本
-    ctx.font = "bold 50px Arial";
-    ctx.fillStyle = "white";
-    ctx.fillText(`${star} STAR`, canvas.width / 2, canvas.height * 0.8);
+    let tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
 
-    return new THREE.CanvasTexture(canvas);
-}
-
-
-// ⭐ 创建卡片
-export async function createCard(star) {
-
-    let texture = createCardTexture(star);
-
-    let material;
+    let material = star === 5
+        ? createSSRMaterial()
+        : new THREE.MeshBasicMaterial({ map: tex });
 
     if (star === 5) {
-        material = createSSRMaterial();
-        material.uniforms.map = { value: texture };
-    } else {
-        material = new THREE.MeshBasicMaterial({ map: texture });
+        material.uniforms.map = { value: tex };
     }
 
-    // ✅ 卡片尺寸缩小（关键修改）
-    let geo = new THREE.PlaneGeometry(2.2, 3.3);
-
+    let geo = new THREE.PlaneGeometry(CARD_W, CARD_H);
     let mesh = new THREE.Mesh(geo, material);
 
     return mesh;
