@@ -13,9 +13,9 @@ export function loadTexture(path) {
 export async function createCard(star) {
 
     let path =
-        star === 5 ? 'assets/5.png' :
-            star === 4 ? 'assets/4.png' :
-                'assets/3.png';
+        star === 5 ? '⭐⭐⭐⭐⭐' :
+            star === 4 ? '⭐⭐⭐⭐' :
+                '⭐⭐⭐';
 
     let texture = await loadTexture(path);
 
