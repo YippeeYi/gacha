@@ -15,35 +15,18 @@ export function initScene() {
     return { scene, camera };
 }
 
+// ⭐ 卡片尺寸（稍微调大一点但更清晰）
+const CARD_W = 1.8;
+const CARD_H = 2.7;
 
-// ⭐ 卡片尺寸（统一缩小 + 提高清晰度）
-const CARD_W = 1.6;
-const CARD_H = 2.4;
-
-
-// ⭐ 星星绘制（更清晰）
-function drawStars(ctx, star, w, h) {
-
-    ctx.fillStyle = "white";
-    ctx.font = "bold 64px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    ctx.fillText("★".repeat(star), w / 2, h * 0.45);
-
-    ctx.font = "bold 32px Arial";
-    ctx.fillText(`${star}★ CARD`, w / 2, h * 0.7);
-}
-
-
-// ⭐ 生成卡片
-export async function createCard(star) {
+// ⭐ 高清Canvas（关键）
+function createCanvas(star) {
 
     const canvas = document.createElement("canvas");
 
-    // ⭐ 提高清晰度（关键）
-    canvas.width = 512;
-    canvas.height = 768;
+    // ⭐ 2倍高清（核心修复清晰度）
+    canvas.width = 1024;
+    canvas.height = 1536;
 
     const ctx = canvas.getContext("2d");
 
@@ -63,12 +46,27 @@ export async function createCard(star) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = "white";
-    ctx.lineWidth = 6;
-    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.lineWidth = 10;
+    ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
 
-    drawStars(ctx, star, canvas.width, canvas.height);
+    // ⭐ 更大字体（修复模糊）
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-    let tex = new THREE.CanvasTexture(canvas);
+    ctx.font = "bold 140px Arial";
+    ctx.fillText("★".repeat(star), canvas.width / 2, canvas.height * 0.45);
+
+    ctx.font = "bold 80px Arial";
+    ctx.fillText(`${star}★ CARD`, canvas.width / 2, canvas.height * 0.7);
+
+    return canvas;
+}
+
+export async function createCard(star) {
+
+    const canvas = createCanvas(star);
+    const tex = new THREE.CanvasTexture(canvas);
     tex.needsUpdate = true;
 
     let material = star === 5
@@ -80,7 +78,5 @@ export async function createCard(star) {
     }
 
     let geo = new THREE.PlaneGeometry(CARD_W, CARD_H);
-    let mesh = new THREE.Mesh(geo, material);
-
-    return mesh;
+    return new THREE.Mesh(geo, material);
 }

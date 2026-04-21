@@ -16,23 +16,20 @@ function updateMoney() {
 }
 
 // ======================
-// ⭐ 状态控制（关键）
+// ⭐ 全局锁（修复打断问题）
 // ======================
 let locked = false;
 let queue = [];
 let current = null;
 
-// ======================
-// ⭐ 清理卡片
-// ======================
 function clearCards() {
     scene.children
-        .filter(obj => obj.isMesh)
-        .forEach(obj => scene.remove(obj));
+        .filter(o => o.isMesh)
+        .forEach(o => scene.remove(o));
 }
 
 // ======================
-// ⭐ 动画循环
+// ⭐ 动画循环（统一节奏）
 // ======================
 function loop(time) {
 
@@ -43,23 +40,20 @@ function loop(time) {
 
         let c = current.card;
 
-        // 飞入
         if (t < 0.5) {
             let p = t / 0.5;
             c.position.z = THREE.MathUtils.lerp(25, 4, p);
-            c.scale.setScalar(THREE.MathUtils.lerp(0.1, 0.8, p));
+            c.scale.setScalar(THREE.MathUtils.lerp(0.1, 0.85, p));
         }
 
-        // 停顿
         else if (t < 0.75) {
             c.position.z = 4;
         }
 
-        // 翻牌
         else {
             let p = (t - 0.75) / 0.25;
             c.rotation.y = THREE.MathUtils.lerp(Math.PI, 0, p);
-            c.scale.setScalar(THREE.MathUtils.lerp(0.8, 1, p));
+            c.scale.setScalar(THREE.MathUtils.lerp(0.85, 1, p));
         }
 
         if (t === 1) {
@@ -73,10 +67,9 @@ function loop(time) {
         current.start = time;
     }
 
-    // SSR shader
-    scene.traverse(obj => {
-        if (obj.material?.uniforms?.time) {
-            obj.material.uniforms.time.value = time * 0.001;
+    scene.traverse(o => {
+        if (o.material?.uniforms?.time) {
+            o.material.uniforms.time.value = time * 0.001;
         }
     });
 
@@ -90,11 +83,11 @@ loop();
 // ======================
 window.draw = async function () {
 
-    if (locked) return; // ❗禁止重复抽卡
+    if (locked) return;
     locked = true;
 
     if (money < cost) {
-        alert("金币不足！");
+        alert("金币不足");
         locked = false;
         return;
     }
@@ -102,7 +95,7 @@ window.draw = async function () {
     money -= cost;
     updateMoney();
 
-    clearCards(); // ⭐ 关键：清除旧卡
+    clearCards();
 
     let star = getResult();
     let card = await createCard(star);
@@ -113,21 +106,13 @@ window.draw = async function () {
 
     scene.add(card);
 
-    queue.push({
-        card,
-        duration: 1200
-    });
+    queue.push({ card, duration: 1000 });
 
-    if (star === 5) {
-        card.layers.enable(1);
-    }
-
-    // 解锁延迟（防止连点）
-    setTimeout(() => locked = false, 1300);
+    setTimeout(() => locked = false, 1200);
 };
 
 // ======================
-// ⭐ 十连抽（优化布局）
+// ⭐ 十连（节奏均匀 + 不出屏）
 // ======================
 window.draw10 = async function () {
 
@@ -135,7 +120,7 @@ window.draw10 = async function () {
     locked = true;
 
     if (money < cost * 10) {
-        alert("金币不足！");
+        alert("金币不足");
         locked = false;
         return;
     }
@@ -143,7 +128,7 @@ window.draw10 = async function () {
     money -= cost * 10;
     updateMoney();
 
-    clearCards(); // ⭐ 清空旧卡
+    clearCards();
 
     let cards = [];
 
@@ -152,16 +137,12 @@ window.draw10 = async function () {
         let star = getResult();
         let card = await createCard(star);
 
-        // ⭐ 居中网格（关键修复）
-        let row = Math.floor(i / 5);
         let col = i % 5;
-
-        let spacingX = 1.9;
-        let spacingY = 2.6;
+        let row = Math.floor(i / 5);
 
         card.position.set(
-            (col - 2) * spacingX,
-            (0.8 - row) * spacingY, // ⭐ 下移避免出屏
+            (col - 2) * 1.9,
+            (0.5 - row) * 2.3, // ⭐ 修复：整体下移
             25
         );
 
@@ -175,22 +156,22 @@ window.draw10 = async function () {
         cards.push(card);
     }
 
-    // ⭐ 顺序揭示
-    cards.forEach((card, i) => {
+    // ⭐ 均匀节奏（修复“不均匀”）
+    cards.forEach((c, i) => {
         queue.push({
-            card,
-            duration: 700 + i * 80
+            card: c,
+            duration: 700
         });
     });
 
-    setTimeout(() => locked = false, 2000);
+    setTimeout(() => locked = false, 1800);
 };
 
 // UI
 document.getElementById("drawBtn").addEventListener("click", draw);
 
 const btn10 = document.createElement("button");
-btn10.innerText = "十连抽（1600）";
+btn10.innerText = "十连抽";
 btn10.onclick = draw10;
 document.getElementById("ui").appendChild(btn10);
 
