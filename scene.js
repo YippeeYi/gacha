@@ -16,7 +16,36 @@ export function initScene() {
 }
 
 
-// ⭐ 核心：生成卡片纹理（Canvas）
+// ⭐ 绘制星星（优化排布）
+function drawStars(ctx, star, cx, cy) {
+
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const sizeBig = 90;
+    const sizeSmall = 70;
+
+    if (star === 3) {
+        ctx.font = `bold ${sizeBig}px Arial`;
+        ctx.fillText("★ ★ ★", cx, cy);
+    }
+
+    else if (star === 4) {
+        ctx.font = `bold ${sizeSmall}px Arial`;
+        ctx.fillText("★ ★", cx - 60, cy);
+        ctx.fillText("★ ★", cx + 60, cy);
+    }
+
+    else if (star === 5) {
+        ctx.font = `bold ${sizeSmall}px Arial`;
+        ctx.fillText("★ ★ ★", cx, cy - 40);
+        ctx.fillText("★ ★", cx, cy + 50);
+    }
+}
+
+
+// ⭐ 生成卡片纹理
 function createCardTexture(star) {
 
     const canvas = document.createElement("canvas");
@@ -25,16 +54,15 @@ function createCardTexture(star) {
 
     const ctx = canvas.getContext("2d");
 
-    // 🎨 颜色配置
     let colors = {
-        3: ["#3aa0ff", "#1c4fd7"],   // 蓝
-        4: ["#a86bff", "#5b2bbd"],   // 紫
-        5: ["#ffd700", "#ff8c00"]    // 金
+        3: ["#3aa0ff", "#1c4fd7"],
+        4: ["#a86bff", "#5b2bbd"],
+        5: ["#ffd700", "#ff8c00"]
     };
 
     let [c1, c2] = colors[star];
 
-    // ⭐ 背景渐变
+    // 背景
     let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, c1);
     gradient.addColorStop(1, c2);
@@ -42,26 +70,20 @@ function createCardTexture(star) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // ⭐ 边框
+    // 边框
     ctx.strokeStyle = "white";
-    ctx.lineWidth = 10;
-    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+    ctx.lineWidth = 8;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
 
-    // ⭐ 星级文字
+    // ⭐ 星星（优化布局）
+    drawStars(ctx, star, canvas.width / 2, canvas.height / 2);
+
+    // 文本
+    ctx.font = "bold 50px Arial";
     ctx.fillStyle = "white";
-    ctx.font = "bold 120px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.fillText(`${star} STAR`, canvas.width / 2, canvas.height * 0.8);
 
-    ctx.fillText("★".repeat(star), canvas.width / 2, canvas.height / 2);
-
-    // ⭐ 标注文字
-    ctx.font = "bold 60px Arial";
-    ctx.fillText(`${star} STAR`, canvas.width / 2, canvas.height * 0.75);
-
-    // 转为 THREE 纹理
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
+    return new THREE.CanvasTexture(canvas);
 }
 
 
@@ -70,16 +92,18 @@ export async function createCard(star) {
 
     let texture = createCardTexture(star);
 
-    let material = star === 5
-        ? createSSRMaterial() // SSR用shader
-        : new THREE.MeshBasicMaterial({ map: texture });
+    let material;
 
-    // ⭐ 如果是SSR，用shader但叠加纹理（关键优化）
     if (star === 5) {
+        material = createSSRMaterial();
         material.uniforms.map = { value: texture };
+    } else {
+        material = new THREE.MeshBasicMaterial({ map: texture });
     }
 
-    let geo = new THREE.PlaneGeometry(4, 6);
+    // ✅ 卡片尺寸缩小（关键修改）
+    let geo = new THREE.PlaneGeometry(2.2, 3.3);
+
     let mesh = new THREE.Mesh(geo, material);
 
     return mesh;

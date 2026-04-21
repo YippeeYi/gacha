@@ -121,12 +121,24 @@ window.draw10 = async function () {
 
     let cards = [];
 
-    // ⭐ 先生成结果（原神也是先算结果）
     for (let i = 0; i < 10; i++) {
+
         let star = getResult();
         let card = await createCard(star);
 
-        card.position.set((i - 4.5) * 2.2, 0, 30);
+        // ✅ 网格布局（不重叠）
+        let row = Math.floor(i / 5);
+        let col = i % 5;
+
+        let spacingX = 2.6;
+        let spacingY = 3.6;
+
+        card.position.set(
+            (col - 2) * spacingX,
+            (1 - row) * spacingY,
+            30
+        );
+
         card.scale.set(0.1, 0.1, 1);
         card.rotation.y = Math.PI;
 
@@ -139,15 +151,13 @@ window.draw10 = async function () {
         cards.push(card);
     }
 
-    // ⭐ 逐个 reveal（关键体验）
     cards.forEach((card, i) => {
         queue.push({
             card: card,
-            duration: 800 + i * 100 // 后面的更慢一点
+            duration: 800
         });
     });
 };
-
 
 // 绑定按钮
 document.getElementById("drawBtn").addEventListener("click", draw);
