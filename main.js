@@ -6,7 +6,7 @@ import { getResult } from './gacha.js';
 const { scene, camera } = initScene();
 const { renderer, baseComposer, bloomComposer } = createRenderer(scene, camera);
 
-let money = 1600;
+let money = 160000;
 const cost = 160;
 
 const moneyEl = document.getElementById("money");
