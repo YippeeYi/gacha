@@ -6,42 +6,58 @@ import { getResult } from './gacha.js';
 const { scene, camera } = initScene();
 const { renderer, baseComposer, bloomComposer } = createRenderer(scene, camera);
 
-let currentCard = null;
-
-let money = 1600;
+let money = 160000;
 const cost = 160;
+
 const moneyEl = document.getElementById("money");
 
+// ⭐ UI更新
 function updateMoney() {
     moneyEl.innerText = money;
 }
 
-// ⭐ 动画状态
-let anim = null;
+// ⭐ 动画队列（核心）
+let queue = [];
+let current = null;
 
 function loop(time) {
 
-    if (anim) {
-        let t = (time - anim.start) / 600; // 600ms 动画
+    // 当前动画
+    if (current) {
+        let t = (time - current.start) / current.duration;
         t = Math.min(t, 1);
 
-        // ⭐ 平滑插值（核心）
-        anim.card.position.z = THREE.MathUtils.lerp(20, 0, t);
-        anim.card.rotation.y = THREE.MathUtils.lerp(Math.PI, 0, t);
-        let s = THREE.MathUtils.lerp(0.1, 1, t);
-        anim.card.scale.set(s, s, 1);
+        let card = current.card;
 
+        // ⭐ 三阶段动画
+        if (t < 0.4) {
+            // 阶段1：远 → 近
+            let p = t / 0.4;
+            card.position.z = THREE.MathUtils.lerp(30, 5, p);
+            card.scale.setScalar(THREE.MathUtils.lerp(0.1, 0.8, p));
+        } else if (t < 0.7) {
+            // 阶段2：停顿（制造仪式感）
+            card.position.z = 5;
+        } else {
+            // 阶段3：翻牌
+            let p = (t - 0.7) / 0.3;
+            card.rotation.y = THREE.MathUtils.lerp(Math.PI, 0, p);
+            card.scale.setScalar(THREE.MathUtils.lerp(0.8, 1, p));
+        }
+
+        // 结束
         if (t === 1) {
-            // ✅ 完全锁死
-            anim.card.position.z = 0;
-            anim.card.rotation.set(0, 0, 0);
-            anim.card.scale.set(1, 1, 1);
-
-            anim = null;
+            card.rotation.set(0, 0, 0);
+            current = null;
         }
     }
+    // 队列调度（关键）
+    else if (queue.length > 0) {
+        current = queue.shift();
+        current.start = time;
+    }
 
-    // SSR shader
+    // SSR shader 动画
     scene.traverse(obj => {
         if (obj.material?.uniforms?.time) {
             obj.material.uniforms.time.value = time * 0.001;
@@ -53,6 +69,10 @@ function loop(time) {
 }
 loop();
 
+
+// =====================
+// ⭐ 单抽（优化版）
+// =====================
 window.draw = async function () {
 
     if (money < cost) {
@@ -65,33 +85,77 @@ window.draw = async function () {
 
     let star = getResult();
 
-    // 删除旧卡
-    if (currentCard) {
-        scene.remove(currentCard);
-    }
-
-    // ⭐ 等贴图加载完（关键修复闪烁）
     let card = await createCard(star);
 
-    // 初始状态（不会被渲染到错误位置）
-    card.position.set(0, 0, 20);
+    // 初始状态（背面）
+    card.position.set(0, 0, 30);
     card.scale.set(0.1, 0.1, 1);
     card.rotation.y = Math.PI;
 
     scene.add(card);
 
-    currentCard = card;
-
-    anim = {
+    queue.push({
         card: card,
-        start: performance.now()
-    };
+        duration: 1200
+    });
 
+    // SSR发光
     if (star === 5) {
         card.layers.enable(1);
     }
 };
 
+
+// =====================
+// 💥 十连抽（核心功能）
+// =====================
+window.draw10 = async function () {
+
+    if (money < cost * 10) {
+        alert("金币不足！");
+        return;
+    }
+
+    money -= cost * 10;
+    updateMoney();
+
+    let cards = [];
+
+    // ⭐ 先生成结果（原神也是先算结果）
+    for (let i = 0; i < 10; i++) {
+        let star = getResult();
+        let card = await createCard(star);
+
+        card.position.set((i - 4.5) * 2.2, 0, 30);
+        card.scale.set(0.1, 0.1, 1);
+        card.rotation.y = Math.PI;
+
+        scene.add(card);
+
+        if (star === 5) {
+            card.layers.enable(1);
+        }
+
+        cards.push(card);
+    }
+
+    // ⭐ 逐个 reveal（关键体验）
+    cards.forEach((card, i) => {
+        queue.push({
+            card: card,
+            duration: 800 + i * 100 // 后面的更慢一点
+        });
+    });
+};
+
+
+// 绑定按钮
 document.getElementById("drawBtn").addEventListener("click", draw);
+
+// ⭐ 你需要在 HTML 里加这个按钮
+const btn10 = document.createElement("button");
+btn10.innerText = "十连抽（1600）";
+btn10.onclick = draw10;
+document.getElementById("ui").appendChild(btn10);
 
 updateMoney();
