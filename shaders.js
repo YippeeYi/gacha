@@ -15,7 +15,7 @@ export function createSSRMaterial() {
             varying vec2 vUv;
 
             void main(){
-                float glow = sin(vUv.y*10.0 + time*5.0);
+                float glow = 0.5 + 0.5*sin(vUv.y*10.0 + time*5.0);
                 vec3 gold = vec3(1.0,0.84,0.0);
                 gl_FragColor = vec4(gold * glow,1.0);
             }
