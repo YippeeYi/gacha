@@ -19,25 +19,34 @@ function updateMoney() {
 
 function loop(time) {
 
-    // ⭐ 动画更新
     if (animatingCard) {
-        animatingCard.position.z -= 0.2;
-        animatingCard.rotation.y += 0.05;
 
+        // ⭐ 位移
+        animatingCard.position.z -= 0.6;
+
+        // ⭐ 旋转（缓慢减速）
+        animatingCard.rotation.y *= 0.9;
+
+        // ⭐ 缩放
         let s = animatingCard.scale.x;
         if (s < 1) {
-            animatingCard.scale.set(s + 0.05, s + 0.05, 1);
+            let ns = Math.min(1, s + 0.06);
+            animatingCard.scale.set(ns, ns, 1);
         }
 
-        // 到位停止
+        // ⭐ 到位
         if (animatingCard.position.z <= 0) {
             animatingCard.position.z = 0;
+
+            // ✅ 强制归正（关键修复）
+            animatingCard.rotation.set(0, 0, 0);
             animatingCard.scale.set(1, 1, 1);
+
             animatingCard = null;
         }
     }
 
-    // ⭐ SSR shader 动起来
+    // ⭐ SSR 动态 shader
     scene.traverse(obj => {
         if (obj.material && obj.material.uniforms?.time) {
             obj.material.uniforms.time.value = time * 0.001;
@@ -68,12 +77,15 @@ window.draw = function () {
 
     let card = createCard(scene, star);
 
-    // 初始动画状态
-    card.position.z = 20;
+    // ✅ 关键：先设置好“最终不会闪”的初始状态
+    card.position.set(0, 0, 20);   // 远处
     card.scale.set(0.1, 0.1, 1);
 
-    animatingCard = card;
+    // ⭐ 给一个初始旋转（但会被动画拉回0）
+    card.rotation.y = Math.PI * 1.2;
+
     currentCard = card;
+    animatingCard = card;
 
     if (star === 5) {
         card.layers.enable(1);

@@ -30,6 +30,9 @@ export function createCard(scene, star) {
     let geo = new THREE.PlaneGeometry(4, 6);
     let mesh = new THREE.Mesh(geo, material);
 
+    // ✅ 关键：创建后先放远（避免第一帧闪）
+    mesh.position.set(0, 0, 20);
+
     scene.add(mesh);
 
     return mesh;
